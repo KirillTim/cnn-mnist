@@ -27,6 +27,7 @@ class FullLayer(NetworkLayer):
         super(FullLayer, self).__init__(size)
         #self.neurons = np.random.normal(size=prev.shape + size)
         self.neurons = np.random.uniform(low=-1, high=1, size=prev.shape + size)
+        self.bias = np.random.uniform(low=-1, high=1, size=size)
         #self.neurons = np.zeros(prev.shape + size)
         self.prev = prev
         self.learn_rate = learn_rate
@@ -34,7 +35,7 @@ class FullLayer(NetworkLayer):
 
     def forward(self):
         self.prev.forward()
-        self.sumOutput = (self.prev.output.reshape(self.prev.shape + (1, 1)) * self.neurons).sum(axis=(0,1))
+        self.sumOutput = (self.prev.output.reshape(self.prev.shape + (1, 1)) * self.neurons).sum(axis=(0,1)) + self.bias
         if self.activation == 'sigmoid':
             self.output = expit(self.sumOutput)
         elif self.activation == 'linear':
@@ -45,11 +46,12 @@ class FullLayer(NetworkLayer):
     def backward(self, next_deriv: np.ndarray):
         if self.activation == 'sigmoid':
             sigmoid_diff = (1 / (np.exp(self.sumOutput) + np.exp(-self.sumOutput)) ** 2)
-            sigmoid_diff = sigmoid_diff.reshape((1,1) + sigmoid_diff.shape)
         elif self.activation == 'linear':
             sigmoid_diff = np.ones(self.sumOutput.shape)
         else:
             raise ValueError("No such activation function: " + str(self.activation))
+        self.bias -= self.learn_rate * sigmoid_diff * next_deriv
+        sigmoid_diff = sigmoid_diff.reshape((1,1) + sigmoid_diff.shape)
         prev_outputs = self.prev.output.reshape(self.prev.output.shape + (1,1))
         next_deriv = next_deriv.reshape((1, 1) + next_deriv.shape)
         self.prev.backward((next_deriv * sigmoid_diff * self.neurons).sum(axis=(2,3)))
