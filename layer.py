@@ -7,7 +7,7 @@ Base class for a neural network layer
 """
 class NetworkLayer(object):
     """
-    Initializes a new network layer.
+    Initializes a new instance of NetworkLayer.
     Parameters:
         * shape - shape of the layer output
     """
@@ -37,6 +37,9 @@ class NetworkLayer(object):
     def backward(self, next_deriv: np.ndarray, learn_rate: float):
         pass
 
+"""
+Represents an input layer of a neural network.
+"""
 class InitialLayer(NetworkLayer):
     def __init__(self, shape):
         super(InitialLayer, self).__init__(shape)
@@ -44,7 +47,17 @@ class InitialLayer(NetworkLayer):
     def set_input(self, input):
         self.output = input
 
+"""
+Represents a full layer for a neural network.
+"""
 class FullLayer(NetworkLayer):
+    """
+    Initializes a new instance of FullLayer.
+    Parameters:
+        * prev - previous layer of the network (a layer that produces results which are further processed by this layer)
+        * size - output shape of this layer
+        * activation - activation function of this layer ('sigmoid' and 'linear' are supported at the moment)
+    """
     def __init__(self, prev: NetworkLayer, size: tuple, activation='sigmoid'):
         super(FullLayer, self).__init__(size)
         #self.neurons = np.random.normal(size=prev.shape + size)
@@ -81,7 +94,17 @@ class FullLayer(NetworkLayer):
         #print(self.activation, minus.min(), minus.mean(), minus.max())
         self.neurons -= learn_rate * minus
 
+"""
+Represents a convolution network layer.
+Implementation calls scipy.signal.convolve2d(mode="valid") to perform the convolution.
+"""
 class ConvolutionLayer(NetworkLayer):
+    """
+    Initializes a new instance of ConvolutionLayer.
+    Parameters:
+        * prev - previous layer of the network (a layer that produces results which are further processed by this layer)
+        * kernel - size of the convolution kernel
+    """
     def __init__(self, prev: NetworkLayer, kernel: tuple):
         super(ConvolutionLayer, self).__init__((prev.shape[0] - kernel[0] + 1, prev.shape[1] - kernel[1] + 1))
         self.neurons = np.random.uniform(low=-1, high=1, size=kernel)
@@ -96,8 +119,17 @@ class ConvolutionLayer(NetworkLayer):
         sigmoid_diff = (1 / (np.exp(self.sumOutput) + np.exp(-self.sumOutput)) ** 2)
         self.prev.backward(convolve2d(next_deriv * sigmoid_diff, self.neurons[::-1, ::-1], mode="valid"), learn_rate)
         self.neurons -= learn_rate * convolve2d(self.prev.output, next_deriv * sigmoid_diff, mode="valid")
-        
+
+"""
+Represents a linear subsampling network layer.
+"""
 class SubsampleLayer(NetworkLayer):
+    """
+    Initializes a new instance of SubsampleLayer.
+    Parameters:
+        * prev - previous layer of the network (a layer that produces results which are further processed by this layer)
+        * kernel - subsampling rate. Must be divisors of prev.shape
+    """
     def __init__(self, prev: NetworkLayer, kernel: tuple):
         assert prev.shape[0] % kernel[0] == 0 and prev.shape[1] % kernel[1] == 0
         super(SubsampleLayer, self).__init__((prev.shape[0] // kernel[0], prev.shape[1] // kernel[1]))
@@ -113,7 +145,15 @@ class SubsampleLayer(NetworkLayer):
         next_deriv = np.concatenate([np.concatenate([next_deriv] * self.kernel[1], axis=3)] * self.kernel[0], axis=1).reshape(self.prev.shape)
         self.prev.backward(next_deriv / (self.kernel[0] * self.kernel[1]), learn_rate)
 
+"""
+Represents a network layer that combines outputs of several layers into a single output array.
+"""
 class CombineLayer(NetworkLayer):
+    """
+    Initializes a new instance of CombineLayer.
+    Parameters:
+        * args - layers which are combined by this layer. Must have an equal shape[1].
+    """
     def __init__(self, *args):
         assert len(set(map(lambda a: a.shape[1], args))) == 1
         super(CombineLayer, self).__init__((sum(map(lambda a: a.shape[0], args)), args[0].shape[1]))
