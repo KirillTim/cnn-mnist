@@ -2,16 +2,38 @@ import numpy as np
 from scipy.special import expit
 from scipy.signal import convolve2d
 
+"""
+Base class for a neural network layer
+"""
 class NetworkLayer(object):
+    """
+    Initializes a new network layer.
+    Parameters:
+        * shape - shape of the layer output
+    """
     def __init__(self, shape: tuple):
         self.shape = shape
 
+    """
+    Set data for an input layer of the network.
+    Parameters:
+        * input: new data for the input layer
+    """
     def set_input(self, input):
         self.prev.set_input(input)
 
+    """
+    Perform a forward propagation pass from the initial layer to the current.
+    """
     def forward(self):
         pass
 
+    """
+    Perform a back propagation pass from the current layer to the initial.
+    Parameters:
+        * next_deriv: loss function derivative for outputs of this layer
+        * learn_rate: learning rate of the pass
+    """
     def backward(self, next_deriv: np.ndarray, learn_rate: float):
         pass
 
